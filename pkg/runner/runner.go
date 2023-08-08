@@ -54,12 +54,12 @@ func (r *Runner) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
 
 	args := utils.Concat([]string{"import", outPath}, absPaths)
 
-	c := exec.Command(cmdPath, args...)
-	c.Stderr = os.Stderr
-	err = c.Run()
+	cmd := exec.Command(cmdPath, args...)
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 
 	filename := utils.GetFilename(string(dirRelPath))
 	fmt.Printf("complete: %s\n", filename)
 
-	return c, err
+	return cmd, err
 }

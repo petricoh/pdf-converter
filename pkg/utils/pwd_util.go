@@ -2,13 +2,12 @@ package utils
 
 import (
 	"os"
-	"path/filepath"
 )
 
-func GetPwd() string {
-	ex, err := os.Executable()
+func GetPwd() (string, error) {
+	pwd, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return filepath.Dir(ex)
+	return pwd, nil
 }

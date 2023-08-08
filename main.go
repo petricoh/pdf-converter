@@ -17,7 +17,12 @@ func main() {
 	inputPath := os.Args[1]
 	outputPath := os.Args[2]
 
-	r := runner.NewRunner(utils.GetPwd(), inputPath, outputPath)
+	pwd, err := utils.GetPwd()
+	if err != nil {
+		fmt.Println("not found pwd")
+		return
+	}
+	r := runner.NewRunner(pwd, inputPath, outputPath)
 	r.Run()
 	time.Sleep(time.Second * 2)
 }
