@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,7 +29,14 @@ func NewRunner(pwd string, inputPath string, outputPath string) *Runner {
 	return &Runner{fm, inputPath, outputPath, pwd}
 }
 
-func (r *Runner) Run() {
+func (r *Runner) Run() error {
+	if _, err := os.Stat(r.outputPath); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(r.outputPath, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
 	dirRelPaths, _ := r.fm.GetDirRelPaths(file.RelPath(r.inputPath))
 	result := utils.AwaitAll(dirRelPaths, r.genPdf)
 
@@ -36,6 +44,8 @@ func (r *Runner) Run() {
 	for _, fail := range failures {
 		fmt.Println(fail.Err)
 	}
+
+	return nil
 }
 
 func (r *Runner) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
@@ -57,9 +67,12 @@ func (r *Runner) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
 	cmd := exec.Command(cmdPath, args...)
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+	if err != nil {
+		return nil, err
+	}
 
 	filename := utils.GetFilename(string(dirRelPath))
 	fmt.Printf("complete: %s\n", filename)
 
-	return cmd, err
+	return cmd, nil
 }

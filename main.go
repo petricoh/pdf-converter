@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+
 	"pdf-converter/pkg/runner"
 	"pdf-converter/pkg/utils"
-	"time"
 )
 
 func main() {
@@ -22,7 +23,13 @@ func main() {
 		fmt.Println("not found pwd")
 		return
 	}
+
 	r := runner.NewRunner(pwd, inputPath, outputPath)
-	r.Run()
+	err = r.Run()
+	if err != nil {
+		fmt.Println("not found pwd")
+		return
+	}
+
 	time.Sleep(time.Second * 2)
 }
