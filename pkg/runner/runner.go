@@ -18,17 +18,19 @@ type FileInfo struct {
 
 type Runner struct {
 	fm         *file.Manager
+	inputPath  string
 	outputPath string
+	pwd        string
 }
 
-func NewRunner(pwd string, outputPath string) *Runner {
+func NewRunner(pwd string, inputPath string, outputPath string) *Runner {
 	fm := file.NewFileManager(pwd)
-	return &Runner{fm, outputPath}
+	return &Runner{fm, inputPath, outputPath, pwd}
 }
 
-func (r *Runner) Run(inputPath string) {
-	dirs, _ := r.fm.GetDirPaths(inputPath)
-	result := utils.AwaitAll(dirs, r.genPdf)
+func (r *Runner) Run() {
+	dirRelPaths, _ := r.fm.GetDirRelPaths(file.RelPath(r.inputPath))
+	result := utils.AwaitAll(dirRelPaths, r.genPdf)
 
 	failures := utils.FilterFailures(result)
 	for _, fail := range failures {
@@ -36,26 +38,27 @@ func (r *Runner) Run(inputPath string) {
 	}
 }
 
-func (r *Runner) genPdf(dirPath string) (*exec.Cmd, error) {
-	infos, err := r.fm.GetFileInfos(dirPath)
+func (r *Runner) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
+	infos, err := r.fm.GetFileInfos(dirRelPath)
 	if err != nil {
 		return nil, err
 	}
 
-	abs, err := utils.GetProjectAbsolutePath()
+	cmdPath, err := exec.LookPath("pdfcpu")
 	if err != nil {
 		return nil, err
 	}
 
-	cmdPath := filepath.Join(abs, "bin", "pdfcpu.exe")
-	outPath := filepath.Join(abs, r.outputPath, utils.GetFilename(dirPath)+".pdf")
+	outPath := filepath.Join(r.pwd, r.outputPath, utils.GetFilename(string(dirRelPath))+".pdf")
+	absPaths := r.fm.ToStringsAbsPaths(r.fm.GetAbsPathsByInfos(infos))
 
-	args := utils.Concat([]string{"import", outPath}, r.fm.GetPathsByInfos(infos))
+	args := utils.Concat([]string{"import", outPath}, absPaths)
+
 	c := exec.Command(cmdPath, args...)
 	c.Stderr = os.Stderr
 	err = c.Run()
 
-	filename := utils.GetFilename(dirPath)
+	filename := utils.GetFilename(string(dirRelPath))
 	fmt.Printf("complete: %s\n", filename)
 
 	return c, err

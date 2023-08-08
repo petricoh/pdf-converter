@@ -3,12 +3,15 @@ package file
 import (
 	"os"
 	"path/filepath"
-	"strings"
 )
+
+type RelPath string
+type AbsPath string
 
 type Info struct {
 	Name        string
-	Path        string
+	RelPath     RelPath
+	AbsPath     AbsPath
 	IsDirectory bool
 }
 
@@ -20,31 +23,31 @@ func NewFileManager(pwd string) *Manager {
 	return &Manager{pwd: pwd}
 }
 
-func (r *Manager) GetPathsByInfos(infos []Info) []string {
-	var result []string
+func (m *Manager) GetAbsPathsByInfos(infos []Info) []AbsPath {
+	var result []AbsPath
 	for _, info := range infos {
-		result = append(result, info.Path)
+		result = append(result, info.AbsPath)
 	}
 	return result
 }
 
-func (r *Manager) GetDirPaths(path string) ([]string, error) {
-	infos, err := r.GetFileInfos(path)
+func (m *Manager) GetDirRelPaths(relPath RelPath) ([]RelPath, error) {
+	infos, err := m.GetFileInfos(relPath)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []string
+	var result []RelPath
 	for _, info := range infos {
 		if info.IsDirectory {
-			result = append(result, info.Path)
+			result = append(result, info.RelPath)
 		}
 	}
 	return result, nil
 }
 
-func (r *Manager) GetFileInfos(path string) ([]Info, error) {
-	files, err := os.ReadDir(path)
+func (m *Manager) GetFileInfos(dirRelPath RelPath) ([]Info, error) {
+	files, err := os.ReadDir(string(dirRelPath))
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +59,23 @@ func (r *Manager) GetFileInfos(path string) ([]Info, error) {
 			return nil, err
 		}
 
-		middlePath := strings.ReplaceAll(path, r.pwd, "")
-		path := filepath.Join(r.pwd, middlePath, rawInfo.Name())
+		fileRelPath := filepath.Join(string(dirRelPath), rawInfo.Name())
+		fileAbsPath := filepath.Join(m.pwd, string(dirRelPath), rawInfo.Name())
 		info := Info{
 			Name:        rawInfo.Name(),
-			Path:        path,
+			RelPath:     RelPath(fileRelPath),
+			AbsPath:     AbsPath(fileAbsPath),
 			IsDirectory: rawInfo.IsDir(),
 		}
 		result = append(result, info)
 	}
 	return result, nil
+}
+
+func (m *Manager) ToStringsAbsPaths(absPaths []AbsPath) []string {
+	var result []string
+	for _, path := range absPaths {
+		result = append(result, string(path))
+	}
+	return result
 }
