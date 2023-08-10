@@ -1,4 +1,4 @@
-package runner
+package executor
 
 import (
 	"errors"
@@ -11,25 +11,19 @@ import (
 	"pdf-converter/pkg/utils"
 )
 
-type FileInfo struct {
-	Name        string
-	Path        string
-	IsDirectory bool
-}
-
-type Runner struct {
+type PdfCpuExecutor struct {
 	fm         *file.Manager
 	inputPath  string
 	outputPath string
 	pwd        string
 }
 
-func NewRunner(pwd string, inputPath string, outputPath string) *Runner {
+func NewPdfCpuExecutor(pwd string, inputPath string, outputPath string) *PdfCpuExecutor {
 	fm := file.NewFileManager(pwd)
-	return &Runner{fm, inputPath, outputPath, pwd}
+	return &PdfCpuExecutor{fm, inputPath, outputPath, pwd}
 }
 
-func (r *Runner) Run() error {
+func (r *PdfCpuExecutor) Exec() error {
 	if _, err := os.Stat(r.outputPath); errors.Is(err, os.ErrNotExist) {
 		err := os.MkdirAll(r.outputPath, os.ModePerm)
 		if err != nil {
@@ -48,7 +42,7 @@ func (r *Runner) Run() error {
 	return nil
 }
 
-func (r *Runner) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
+func (r *PdfCpuExecutor) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
 	infos, err := r.fm.GetFileInfos(dirRelPath)
 	if err != nil {
 		return nil, err

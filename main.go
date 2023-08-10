@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"pdf-converter/pkg/runner"
+	"pdf-converter/pkg/executor"
 	"pdf-converter/pkg/utils"
 )
 
@@ -24,8 +24,8 @@ func main() {
 		return
 	}
 
-	r := runner.NewRunner(pwd, inputPath, outputPath)
-	err = r.Run()
+	r := executor.NewPdfCpuExecutor(pwd, inputPath, outputPath)
+	err = r.Exec()
 	if err != nil {
 		fmt.Println("not found pwd")
 		return
