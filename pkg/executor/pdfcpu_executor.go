@@ -23,16 +23,16 @@ func NewPdfCpuExecutor(pwd string, inputPath string, outputPath string) *PdfCpuE
 	return &PdfCpuExecutor{fm, inputPath, outputPath, pwd}
 }
 
-func (r *PdfCpuExecutor) Exec() error {
-	if _, err := os.Stat(r.outputPath); errors.Is(err, os.ErrNotExist) {
-		err := os.MkdirAll(r.outputPath, os.ModePerm)
+func (e *PdfCpuExecutor) Exec() error {
+	if _, err := os.Stat(e.outputPath); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(e.outputPath, os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
 
-	dirRelPaths, _ := r.fm.GetDirRelPaths(file.RelPath(r.inputPath))
-	result := utils.AwaitAll(dirRelPaths, r.genPdf)
+	dirRelPaths, _ := e.fm.GetDirRelPaths(file.RelPath(e.inputPath))
+	result := utils.AwaitAll(dirRelPaths, e.genPdf)
 
 	failures := utils.FilterFailures(result)
 	for _, fail := range failures {
@@ -42,8 +42,8 @@ func (r *PdfCpuExecutor) Exec() error {
 	return nil
 }
 
-func (r *PdfCpuExecutor) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
-	infos, err := r.fm.GetFileInfos(dirRelPath)
+func (e *PdfCpuExecutor) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
+	infos, err := e.fm.GetFileInfos(dirRelPath)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (r *PdfCpuExecutor) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	outPath := filepath.Join(r.pwd, r.outputPath, utils.GetFilename(string(dirRelPath))+".pdf")
-	absPaths := r.fm.ToStringsAbsPaths(r.fm.GetAbsPathsByInfos(infos))
+	outPath := filepath.Join(e.pwd, e.outputPath, utils.GetFilename(string(dirRelPath))+".pdf")
+	absPaths := e.fm.ToStringsAbsPaths(e.fm.GetAbsPathsByInfos(infos))
 
 	args := utils.Concat([]string{"import", outPath}, absPaths)
 
