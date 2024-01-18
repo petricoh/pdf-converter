@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"pdf-converter/pkg/file"
-	"pdf-converter/pkg/utils"
+	"github.com/rwiv/pdfconv/pkg/file"
+	"github.com/rwiv/pdfconv/pkg/utils"
 )
 
 type PdfCpuExecutor struct {

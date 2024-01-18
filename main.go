@@ -1,7 +1,7 @@
 package main
 
 import (
-	"pdf-converter/pkg/runner"
+	"github.com/rwiv/pdfconv/pkg/runner"
 )
 
 func main() {

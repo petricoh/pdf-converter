@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"pdf-converter/pkg/executor"
-	"pdf-converter/pkg/utils"
+	"github.com/rwiv/pdfconv/pkg/executor"
+	"github.com/rwiv/pdfconv/pkg/utils"
 )
 
 type AppRunner struct {
