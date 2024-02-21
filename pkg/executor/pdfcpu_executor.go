@@ -4,69 +4,87 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 
-	"github.com/rwiv/pdfconv/pkg/file"
-	"github.com/rwiv/pdfconv/pkg/utils"
+	pdfcpu "github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/rwiv/pdfconv/pkg/utils/apath"
+	"github.com/rwiv/pdfconv/pkg/utils/await"
+	"github.com/rwiv/pdfconv/pkg/utils/fileutil"
+	"github.com/rwiv/pdfconv/pkg/utils/list"
 )
 
 type PdfCpuExecutor struct {
-	fm         *file.Manager
-	inputPath  string
-	outputPath string
-	pwd        string
+	pwd       string
+	inDirAbs  string
+	outDirAbs string
 }
 
 func NewPdfCpuExecutor(pwd string, inputPath string, outputPath string) *PdfCpuExecutor {
-	fm := file.NewFileManager(pwd)
-	return &PdfCpuExecutor{fm, inputPath, outputPath, pwd}
+	inDirAbs := apath.ToAbsPath(pwd, inputPath)
+	outDirAbs := apath.ToAbsPath(pwd, outputPath)
+	return &PdfCpuExecutor{pwd, inDirAbs, outDirAbs}
 }
 
-func (e *PdfCpuExecutor) Exec() error {
-	if _, err := os.Stat(e.outputPath); errors.Is(err, os.ErrNotExist) {
-		err := os.MkdirAll(e.outputPath, os.ModePerm)
+func (e *PdfCpuExecutor) ExecSync() error {
+	// check out dir
+	if _, err := os.Stat(e.outDirAbs); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(e.outDirAbs, os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
 
-	dirRelPaths, _ := e.fm.GetDirRelPaths(file.RelPath(e.inputPath))
-	result := utils.AwaitAll(dirRelPaths, e.genPdf)
-
-	failures := utils.FilterFailures(result)
-	for _, fail := range failures {
-		fmt.Println(fail.Err)
+	// generate pdfs sync
+	dirs, err := fileutil.ReadDir(e.inDirAbs)
+	if err != nil {
+		return err
 	}
-
+	for _, dirInfo := range dirs {
+		err := e.genPdf(dirInfo)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (e *PdfCpuExecutor) genPdf(dirRelPath file.RelPath) (*exec.Cmd, error) {
-	infos, err := e.fm.GetFileInfos(dirRelPath)
-	if err != nil {
-		return nil, err
+func (e *PdfCpuExecutor) ExecParallel() error {
+	// check out dir
+	if _, err := os.Stat(e.outDirAbs); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(e.outDirAbs, os.ModePerm)
+		if err != nil {
+			return err
+		}
 	}
 
-	cmdPath, err := exec.LookPath("pdfcpu")
+	// generate pdfs parallel
+	dirs, err := fileutil.ReadDir(e.inDirAbs)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	result := await.AwaitAll(dirs, func(info *fileutil.FileInfo) (*string, error) {
+		err := e.genPdf(info)
+		result := ""
+		return &result, err
+	})
+	failures := await.FilterFailures(result)
+	for _, fail := range failures {
+		fmt.Println(fail.Err)
+	}
+	return nil
+}
 
-	outPath := filepath.Join(e.pwd, e.outputPath, utils.GetFilename(string(dirRelPath))+".pdf")
-	absPaths := e.fm.ToStringsAbsPaths(e.fm.GetAbsPathsByInfos(infos))
-
-	args := utils.Concat([]string{"import", outPath}, absPaths)
-
-	cmd := exec.Command(cmdPath, args...)
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+func (e *PdfCpuExecutor) genPdf(dirInfo *fileutil.FileInfo) error {
+	files, err := fileutil.ReadDir(dirInfo.AbsPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	filename := utils.GetFilename(string(dirRelPath))
-	fmt.Printf("complete: %s\n", filename)
-
-	return cmd, nil
+	imgFiles := list.Map(files, func(file *fileutil.FileInfo) string {
+		return file.AbsPath
+	})
+	outFile := apath.ToAbsPath(e.outDirAbs, dirInfo.Name+".pdf")
+	err = pdfcpu.ImportImagesFile(imgFiles, outFile, nil, nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }

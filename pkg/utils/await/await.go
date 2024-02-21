@@ -1,4 +1,4 @@
-package utils
+package await
 
 import (
 	"sort"
