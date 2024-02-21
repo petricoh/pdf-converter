@@ -67,6 +67,9 @@ func (e *PdfCpuExecutor) ExecParallel() error {
 		return &result, err
 	})
 	failures := await.FilterFailures(result)
+	if len(failures) > 0 {
+		fmt.Println("await errors:")
+	}
 	for _, fail := range failures {
 		fmt.Println(fail.Err)
 	}
@@ -86,5 +89,6 @@ func (e *PdfCpuExecutor) genPdf(dirInfo *fileutil.FileInfo) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("complete: %s\n", dirInfo.Name)
 	return nil
 }

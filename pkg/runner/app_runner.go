@@ -27,14 +27,15 @@ func (r *AppRunner) Run() {
 
 	pwd, err := pwdutil.GetPwd()
 	if err != nil {
-		fmt.Println("not found pwd")
+		fmt.Println("pwd error")
+		fmt.Println(err)
 		return
 	}
 
 	e := executor.NewPdfCpuExecutor(pwd, inputPath, outputPath)
 	err = e.ExecParallel()
 	if err != nil {
-		fmt.Println("not found pwd")
+		fmt.Println(err)
 		return
 	}
 
